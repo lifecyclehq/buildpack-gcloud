@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "GCloud"
+exit 0

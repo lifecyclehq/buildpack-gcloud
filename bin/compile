@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# Usage:
+#
+#     $ bin/compile <build-dir> <cache-dir> <env-path>
+
+set -ex
+
+BUILD_DIR=$1
+CACHE_DIR=$2
+ENV_DIR=$3
+BUILDPACK_DIR=`cd $(dirname $0); cd ..; pwd`
+VENDOR_DIR=$BUILD_DIR/vendor
+CLOUD_DIR=google-cloud-sdk
+BIN_DIR=$VENDOR_DIR/bin
+
+mkdir -p $BIN_DIR
+export PATH=$BIN_DIR:$PATH
+
+if ! [ -x "$(command -v gcloud)" ]; then
+  GCLOUD_TARBALL=google-cloud-sdk-281.0.0-linux-x86_64.tar.gz
+
+  curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/$GCLOUD_TARBALL -o $VENDOR_DIR/$GCLOUD_TARBALL
+  tar -xzf $VENDOR_DIR/$GCLOUD_TARBALL -C $VENDOR_DIR
+  rm $VENDOR_DIR/$GCLOUD_TARBALL
+
+  $VENDOR_DIR/$CLOUD_DIR/install.sh --usage-reporting=false --path-update=false --bash-completion=false
+
+  export PATH=$VENDOR_DIR/$CLOUD_DIR/bin:$PATH
+
+  gcloud components install kubectl --quiet
+fi
+
+if ! [ -x "$(command -v jq)" ]; then
+  curl -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o $BIN_DIR/jq
+  chmod +x $BIN_DIR/jq
+fi
+
+# Copy .profile.d script for configuring gcloud
+mkdir -p $BUILD_DIR/.profile.d
+cp $BUILDPACK_DIR/.profile.d/* $BUILD_DIR/.profile.d
+
